@@ -53,4 +53,4 @@ Consulta `DEPLOYMENT.md` para una guía paso a paso de despliegue local y produc
 
 ## Repositorio
 - **GitHub**: https://github.com/al03022140/devops-web-app
-- **Owner**: al03022140
+- **Dueño**: al03022140
