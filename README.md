@@ -1,5 +1,8 @@
 # Dashboard de Avisos Semanales
 
+Sistema de gestión de avisos y usuarios con arquitectura DevOps completa - Node.js, Docker, Monitoring, y automatización de despliegue.
+
+## Descripción
 Proyecto Node.js + Express + MySQL + Frontend estático (HTML/CSS/JS) con DevOps (Docker, Nginx), métricas (Prometheus/Grafana) y CI/CD.
 
 ## Requisitos
@@ -47,3 +50,7 @@ Usa `docker-compose.prod.yml`, Nginx como proxy y Prometheus/Grafana. Ver `.env.
 
 ## Deployment & CI/CD
 Consulta `DEPLOYMENT.md` para una guía paso a paso de despliegue local y producción, variables de entorno y descripción de los workflows de CI/CD.
+
+## Repositorio
+- **GitHub**: https://github.com/al03022140/devops-web-app
+- **Owner**: al03022140
