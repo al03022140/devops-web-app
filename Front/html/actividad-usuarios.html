@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actividad de Usuarios - Sistema de Avisos</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .nav-menu{background:#333;padding:10px 20px;display:flex;gap:20px}
+    .nav-menu a{color:#fff;text-decoration:none;padding:8px 16px;border-radius:5px}
+    .nav-menu a:hover{background:#555}
+    .panel{background:#e0e0e0;border-radius:8px;padding:16px;margin-bottom:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .card{background:#f8f9fa;border-radius:8px;padding:12px}
+    .user-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #ddd}
+    .btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <h1>Actividad de Usuarios</h1>
+      <div class="user-info" id="userRole">Cargando...</div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">↗</button>
+  </header>
+  <nav class="nav-menu">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="users-list.html">Usuarios</a>
+    <a href="avisos-management.html">Gestión Avisos</a>
+  </nav>
+  <div class="container">
+    <div id="message" class="panel">Vista preliminar basada en datos disponibles. Para accesos y comentarios por usuario se requiere exponer APIs adicionales.</div>
+
+    <div class="panel">
+      <div class="user-row">
+        <select id="userSelect"></select>
+        <button class="btn" id="loadBtn">Cargar actividad</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 style="color:#000">Avisos creados</h3>
+        <div id="avisosCreados">Seleccione un usuario...</div>
+      </div>
+      <div class="card">
+        <h3 style="color:#000">Comentarios recientes</h3>
+        <div id="comentariosUsuario">Requiere endpoint por usuario</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    let token=null; let role=null; let users=[];
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      token = localStorage.getItem('token');
+      role = localStorage.getItem('userRole');
+      if(!token){ window.location.href='login.html'; return; }
+      if(!role || (role.toLowerCase() !== 'administrador' && role.toLowerCase() !== 'admin')){ 
+        alert(`Solo administradores. Tu rol: ${role}`); 
+        window.location.href='dashboard.html'; 
+        return; 
+      }
+      document.getElementById('userRole').textContent = `rol: ${role}`;
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      document.getElementById('loadBtn').addEventListener('click', loadActivity);
+      loadUsers();
+    });
+
+    async function loadUsers(){
+      try{ const res = await fetch(`${API_BASE}/users`, { headers:{ 'Authorization': `Bearer ${token}`}}); if(!res.ok) throw new Error(); users = await res.json();
+        const sel = document.getElementById('userSelect'); sel.innerHTML = users.map(u=>`<option value="${u.usuario_id || u.id}">${u.nombre} (${u.email})</option>`).join('');
+      }catch(e){ document.getElementById('message').innerHTML = '<div class="error-message">No se pudieron cargar usuarios</div>'; }
+    }
+
+    async function loadActivity(){
+      const selId = document.getElementById('userSelect').value;
+      // Avisos creados por el usuario
+      try{
+        // Cargamos varias páginas y filtramos por creador
+        let page=1; const limit=50; const acc=[]; let done=false;
+        while(!done){
+          const res = await fetch(`${API_BASE}/avisos?page=${page}&limit=${limit}`, { headers:{ 'Authorization': `Bearer ${token}` }});
+          if(!res.ok) throw new Error();
+          const data = await res.json();
+          acc.push(...data.items);
+          if (acc.length >= data.total || data.items.length < limit) { done=true; } else { page++; }
+        }
+        const propios = acc.filter(a => String(a.creador?.usuario_id || a.creado_por) === String(selId));
+        const cont = document.getElementById('avisosCreados');
+        if(propios.length===0){ cont.innerHTML = '<div>No tiene avisos creados</div>'; }
+        else { cont.innerHTML = propios.map(a => `<div>• ${a.titulo}</div>`).join(''); }
+      }catch(e){ document.getElementById('avisosCreados').innerHTML = '<div class="error-message">Error cargando avisos</div>'; }
+    }
+
+    function logout(){ localStorage.clear(); window.location.href='login.html'; }
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moderación de Comentarios - Sistema de Avisos</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .nav-menu{background:#333;padding:10px 20px;display:flex;gap:20px}
+    .nav-menu a{color:#fff;text-decoration:none;padding:8px 16px;border-radius:5px}
+    .nav-menu a:hover{background:#555}
+    .panel{background:#e0e0e0;border-radius:8px;padding:16px;margin-bottom:16px}
+    .filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .filters input{padding:10px;border:1px solid #ccc;border-radius:6px}
+    .comment-item{background:#f8f9fa;border-radius:8px;padding:12px;margin:8px 0}
+    .comment-head{display:flex;justify-content:space-between;color:#555}
+    .btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer}
+    .btn-danger{background:#dc3545;color:#fff}
+    .error-message{color:#ff4444;background:#ffe6e6;padding:10px;border-radius:6px;margin:10px 0}
+    .info{color:#333;background:#f1f1f1;padding:10px;border-radius:6px;margin:10px 0}
+    @media(max-width:900px){.filters{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.filters{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <h1>Moderación de Comentarios</h1>
+      <div class="user-info" id="userRole">Cargando...</div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">↗</button>
+  </header>
+  <nav class="nav-menu">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="users-list.html">Usuarios</a>
+    <a href="avisos-management.html">Gestión Avisos</a>
+  </nav>
+  <div class="container">
+    <div id="message" class="info">Filtra por usuario, rango de fechas y aviso. Usa el listado global de comentarios con paginación.</div>
+
+    <div class="panel">
+      <div class="filters">
+        <input type="text" id="userFilter" placeholder="Usuario (nombre o ID)" />
+        <input type="date" id="fromDate" />
+        <input type="date" id="toDate" />
+        <input type="number" id="avisoIdInput" placeholder="ID de aviso (opcional)" />
+      </div>
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+        <button class="btn" id="loadCommentsBtn">Aplicar Filtros</button>
+        <label for="pageSize" style="color:#333;">Tamaño página:</label>
+        <select id="pageSize" class="btn" style="background:#fff;border:1px solid #ccc;color:#333;">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="commentsContainer"></div>
+    <div id="pagination" style="margin-top:10px"></div>
+  </div>
+
+  <script>
+  const API_BASE = `${window.location.origin}/api`;
+  let token = null; let role = null;
+  const state = { page: 1, limit: 20, usuario: '', desde: '', hasta: '', aviso: '' };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      token = localStorage.getItem('token');
+      role = localStorage.getItem('userRole');
+      if (!token) { window.location.href = 'login.html'; return; }
+      if (role !== 'administrador') { alert('Solo administradores'); window.location.href = 'dashboard.html'; return; }
+      document.getElementById('userRole').textContent = `rol: ${role}`;
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      document.getElementById('loadCommentsBtn').addEventListener('click', () => { state.page = 1; loadGlobal(); });
+      const pageSize = document.getElementById('pageSize');
+      if (pageSize) {
+        pageSize.value = String(state.limit);
+        pageSize.addEventListener('change', () => {
+          state.limit = Number(pageSize.value) || 20;
+          state.page = 1;
+          loadGlobal();
+        });
+      }
+      loadGlobal();
+    });
+
+    async function loadGlobal(){
+      const c = document.getElementById('commentsContainer');
+      c.innerHTML = '<div class="info">Cargando...</div>';
+      state.usuario = document.getElementById('userFilter').value.trim();
+      state.desde = document.getElementById('fromDate').value;
+      state.hasta = document.getElementById('toDate').value;
+      state.aviso = document.getElementById('avisoIdInput').value;
+      const params = new URLSearchParams();
+      if (state.usuario) params.set('usuario', state.usuario);
+      if (state.desde) params.set('desde', state.desde);
+      if (state.hasta) params.set('hasta', state.hasta);
+      if (state.aviso) params.set('aviso', state.aviso);
+      params.set('page', String(state.page));
+      params.set('limit', String(state.limit));
+      try{
+        const res = await fetch(`${API_BASE}/comentarios?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if(!res.ok) throw new Error();
+        const data = await res.json(); // { items, total, page, limit }
+        render(data);
+      }catch(e){ c.innerHTML = '<div class="error-message">Error al cargar</div>'; document.getElementById('pagination').innerHTML = ''; }
+    }
+
+    function template(x){
+      const fecha = new Date(x.createdAt || x.created_at).toLocaleString('es-ES');
+      return `
+        <div class="comment-item">
+          <div class="comment-head">
+            <span><b>${x.autor?.nombre || 'Usuario'}${x.autor?.email ? ': ' + x.autor.email : ''}</b> • ${fecha} • Aviso: ${x.aviso?.titulo || ''}</span>
+            <div>
+              <button class="btn btn-danger" onclick="del(${x.comentario_id || x.id})">Eliminar</button>
+            </div>
+          </div>
+          <div>${x.comentario}</div>
+        </div>`
+    }
+
+    function render(data){
+      const { items = [], total = 0, page = 1, limit = state.limit } = data || {};
+      const c = document.getElementById('commentsContainer');
+      const p = document.getElementById('pagination');
+      if (!items.length){ c.innerHTML = '<div class="info">Sin resultados</div>'; p.innerHTML = ''; return; }
+      c.innerHTML = items.map(x => template(x)).join('');
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      p.innerHTML = `
+        <button class="btn" id="prev" ${page<=1?'disabled':''}>Anterior</button>
+        <span style="margin:0 8px;">Página ${page} de ${totalPages}</span>
+        <button class="btn" id="next" ${page>=totalPages?'disabled':''}>Siguiente</button>
+      `;
+      document.getElementById('prev')?.addEventListener('click', () => { if (state.page>1){ state.page--; loadGlobal(); }});
+      document.getElementById('next')?.addEventListener('click', () => { const max = Math.max(1, Math.ceil(total/limit)); if (state.page<max){ state.page++; loadGlobal(); }});
+    }
+
+    async function del(id){
+      if (!confirm('¿Eliminar comentario?')) return;
+      try{ const res = await fetch(`${API_BASE}/comentarios/${id}`, { method:'DELETE', headers:{ 'Authorization': `Bearer ${token}` }}); if (res.status!==204) throw new Error(); loadGlobal(); }catch(e){ alert('No se pudo eliminar'); }
+    }
+
+    function logout(){ localStorage.clear(); window.location.href = 'login.html'; }
+  </script>
+</body>
+</html>

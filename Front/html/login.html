@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Avisos</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background-color: #b8b8b8;
+            color: #000000;
+            border-radius: 15px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #000000;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #000000;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #999;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #ffffff;
+            color: #000000;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #333;
+        }
+        
+        .login-btn {
+            width: 100%;
+            background-color: #333;
+            color: #ffffff;
+            border: none;
+            padding: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        .login-btn:hover {
+            background-color: #555;
+        }
+        
+        .login-btn:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1 class="login-title">Iniciar Sesión</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" name="password" required minlength="6" autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">
+                    Iniciar Sesión
+                </button>
+                
+                <div class="loading" id="loading">
+                    Iniciando sesión...
+                </div>
+                
+                <div class="error-message" id="errorMessage">
+                    Error en las credenciales
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Reset UI
+            errorMessage.style.display = 'none';
+            loginBtn.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                // Intentar login contra API
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Guardar token y rol en localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userRole', data.rol);
+                    localStorage.setItem('userName', data.nombre || email);
+                    
+                    // Redireccionar al dashboard
+                    window.location.href = '/html/dashboard.html';
+                } else {
+                    throw new Error(data.error || data.message || 'Error en el login');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = error.message || 'Error de conexión';
+                errorMessage.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+        
+        // Variable para evitar múltiples validaciones
+        let isCheckingSession = false;
+        
+        // Verificar si ya está logueado y validar token
+        async function checkExistingSession() {
+            if (isCheckingSession) {
+                return;
+            }
+            
+            isCheckingSession = true;
+            const existingToken = localStorage.getItem('token');
+            console.log('Token existente al cargar login:', existingToken);
+            
+            if (existingToken) {
+                try {
+                    // Validar token con el backend
+                    const response = await fetch(`${API_BASE}/auth/validate`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${existingToken}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        console.log('Token válido, redirigiendo al dashboard');
+                        // Evitar que se ejecute otra validación
+                        window.location.replace('/html/dashboard.html');
+                        return;
+                    } else {
+                        console.log('Token inválido, limpiando localStorage');
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('userRole');
+                        localStorage.removeItem('userName');
+                    }
+                } catch (error) {
+                    console.error('Error validando token:', error);
+                    // Si hay error de conexión, limpiar token para evitar bucles
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('userRole');
+                    localStorage.removeItem('userName');
+                    localStorage.removeItem('userId');
+                    
+                    const errorMessage = document.getElementById('errorMessage');
+                    if (errorMessage) {
+                        errorMessage.textContent = 'Error de conexión. Intenta hacer login nuevamente.';
+                        errorMessage.style.display = 'block';
+                        errorMessage.style.color = '#ffa500';
+                    }
+                }
+            }
+            
+            isCheckingSession = false;
+        }
+        
+        // Ejecutar verificación al cargar la página solo una vez
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkExistingSession);
+        } else {
+            checkExistingSession();
+        }
+    </script>
+</body>
+</html>

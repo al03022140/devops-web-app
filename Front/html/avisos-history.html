@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial de Avisos - Sistema de Avisos</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .nav-menu { background:#333; padding:10px 20px; display:flex; gap:20px; }
+    .nav-menu a { color:#fff; text-decoration:none; padding:8px 16px; border-radius:5px; }
+    .nav-menu a:hover { background:#555; }
+    .filters { background:#e0e0e0; padding:15px; border-radius:8px; margin-bottom:15px; display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+    .filters input { padding:10px; border:1px solid #ccc; border-radius:6px; }
+    .aviso-item { background:#f8f9fa; border-left:4px solid #333; border-radius:8px; padding:16px; margin:10px 0; }
+    .aviso-title { color:#000; font-weight:bold; margin-bottom:6px; }
+    .aviso-meta { color:#666; font-size:14px; margin-bottom:8px; }
+    .aviso-desc { color:#222; }
+    .btn { padding:8px 14px; border:none; border-radius:6px; cursor:pointer; }
+    .btn-secondary { background:#6c757d; color:#fff; }
+    @media (max-width: 900px){ .filters{ grid-template-columns:repeat(2,1fr);} }
+    @media (max-width: 600px){ .filters{ grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <h1>Historial de Avisos</h1>
+      <div class="user-info" id="userRole">Cargando...</div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">↗</button>
+  </header>
+  <nav class="nav-menu">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="users-list.html">Usuarios</a>
+    <a href="avisos-management.html">Gestión Avisos</a>
+  </nav>
+  <div class="container">
+    <div class="filters">
+      <input type="date" id="fromDate" />
+      <input type="date" id="toDate" />
+      <input type="text" id="authorFilter" placeholder="Filtrar por autor" />
+      <input type="text" id="searchText" placeholder="Buscar en título o descripción" />
+    </div>
+    <div style="margin-bottom:10px"><button class="btn btn-secondary" id="applyFilters">Aplicar Filtros</button></div>
+
+    <div id="avisosContainer"><div style="text-align:center;color:#666">Cargando avisos...</div></div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    let token = null;
+    let allAvisos = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      token = localStorage.getItem('token');
+      const role = localStorage.getItem('userRole');
+      if (!token) { window.location.href = 'login.html'; return; }
+      document.getElementById('userRole').textContent = `rol: ${role || 'desconocido'}`;
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      document.getElementById('applyFilters').addEventListener('click', render);
+      loadAllAvisos();
+    });
+
+    async function loadAllAvisos(){
+      try{
+        let page = 1; const limit = 50; let done = false; const acc = [];
+        while(!done){
+          const res = await fetch(`${API_BASE}/avisos?page=${page}&limit=${limit}`, { headers: { 'Authorization': `Bearer ${token}` }});
+          if(!res.ok) throw new Error('Error al cargar avisos');
+          const data = await res.json();
+          acc.push(...data.items);
+          if (acc.length >= data.total || data.items.length < limit) { done = true; } else { page++; }
+        }
+        allAvisos = acc;
+        render();
+      }catch(e){
+        document.getElementById('avisosContainer').innerHTML = '<div class="error-message">No se pudieron cargar los avisos</div>';
+      }
+    }
+
+    function render(){
+      const c = document.getElementById('avisosContainer');
+      const from = document.getElementById('fromDate').value ? new Date(document.getElementById('fromDate').value) : null;
+      const to = document.getElementById('toDate').value ? new Date(document.getElementById('toDate').value) : null;
+      const author = (document.getElementById('authorFilter').value || '').toLowerCase();
+      const q = (document.getElementById('searchText').value || '').toLowerCase();
+
+      const filtered = allAvisos.filter(a => {
+        const fi = new Date(a.fecha_inicio_semana);
+        const ff = new Date(a.fecha_fin_semana);
+        if (from && ff < from) return false;
+        if (to && fi > to) return false;
+        const authorName = (a.creador?.nombre || '').toLowerCase();
+        if (author && !authorName.includes(author)) return false;
+        const text = `${a.titulo} ${a.descripcion}`.toLowerCase();
+        if (q && !text.includes(q)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0){
+        c.innerHTML = '<div style="text-align:center;color:#666">Sin resultados</div>';
+        return;
+      }
+
+      c.innerHTML = filtered.map(a => avisoTemplate(a)).join('');
+    }
+
+    function avisoTemplate(a){
+      const fi = new Date(a.fecha_inicio_semana).toLocaleDateString('es-ES');
+      const ff = new Date(a.fecha_fin_semana).toLocaleDateString('es-ES');
+      return `
+        <div class="aviso-item">
+          <div class="aviso-title">${a.titulo}</div>
+          <div class="aviso-meta">Semana: ${fi} — ${ff} • Autor: ${a.creador?.nombre || 'N/A'}</div>
+          <div class="aviso-desc">${a.descripcion}</div>
+          <div style="margin-top:8px"><a class="btn btn-secondary" href="aviso-detail.html?id=${a.aviso_id || a.id}">Ver detalle</a></div>
+        </div>`;
+    }
+
+    function logout(){ localStorage.clear(); window.location.href = 'login.html'; }
+  </script>
+</body>
+</html>

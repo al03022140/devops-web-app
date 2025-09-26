@@ -1,0 +1,635 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Avisos - Sistema de Avisos</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .nav-menu {
+            background-color: #333;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-menu a {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-menu a:hover {
+            background-color: #555;
+        }
+        
+        .form-container {
+            background-color: #e0e0e0;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .avisos-list {
+            background-color: #e0e0e0;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .aviso-item {
+            background-color: #f8f9fa;
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .aviso-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .aviso-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+            flex-grow: 1;
+        }
+        
+        .aviso-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+        }
+        
+        .aviso-description {
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .aviso-dates {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .aviso-creator {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            background-color: #ffe6e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success-message {
+            color: #28a745;
+            background-color: #e6ffe6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .form-title {
+            color: #000;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .section-title {
+            color: #000;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .date-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .date-row .form-group {
+            flex: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .date-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .aviso-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .aviso-actions {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div>
+            <h1 id="welcomeMessage">Gestión de Avisos</h1>
+            <div class="user-info" id="userRole">Cargando...</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">↗</button>
+    </header>
+
+    <nav class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="users-list.html">Usuarios</a>
+        <a href="avisos-management.html">Gestión Avisos</a>
+    </nav>
+
+    <div class="container">
+        <!-- Formulario para crear/editar avisos -->
+        <div class="form-container">
+            <h2 class="form-title" id="formTitle">Crear Nuevo Aviso</h2>
+            
+            <div id="messageContainer"></div>
+            
+            <form id="avisoForm">
+                <div class="form-group">
+                    <label for="titulo">Título del Aviso *</label>
+                    <input type="text" id="titulo" name="titulo" required maxlength="255">
+                </div>
+                
+                <div class="form-group">
+                    <label for="descripcion">Descripción *</label>
+                    <textarea id="descripcion" name="descripcion" required maxlength="1000" placeholder="Describe el contenido del aviso..."></textarea>
+                </div>
+                
+                <div class="date-row">
+                    <div class="form-group">
+                        <label for="fecha_inicio_semana">Fecha de Inicio *</label>
+                        <input type="date" id="fecha_inicio_semana" name="fecha_inicio_semana" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fecha_fin_semana">Fecha de Fin *</label>
+                        <input type="date" id="fecha_fin_semana" name="fecha_fin_semana" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="imagenes">Imágenes (opcional)</label>
+                    <input type="file" id="imagenes" name="imagenes" accept="image/*" multiple>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="submitBtn">Crear Aviso</button>
+                    <button type="button" class="btn-secondary" id="cancelBtn">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de avisos existentes -->
+        <div class="avisos-list">
+            <h2 class="section-title">Avisos Existentes</h2>
+            <div id="avisosContainer">
+                <div class="loading">Cargando avisos...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/comments.js"></script>
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+        let userToken = null;
+        let currentUser = null;
+        let editingAvisoId = null;
+
+        // Utilidades de imágenes
+        function getSelectedImages() {
+            const input = document.getElementById('imagenes');
+            return input && input.files ? input.files : null;
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function uploadAvisoImages(avisoId, files) {
+            if (!files || files.length === 0) return { ok: true };
+            const imagenes = [];
+            for (const file of files) {
+                if (!file.type || !file.type.startsWith('image/')) {
+                    continue; // ignorar no-imágenes
+                }
+                const datosBase64 = await readFileAsDataURL(file);
+                imagenes.push({
+                    nombre_archivo: file.name,
+                    tipo_mime: file.type,
+                    datos_base64: datosBase64
+                });
+            }
+            if (imagenes.length === 0) return { ok: true };
+
+            const resp = await fetch(`${API_BASE}/avisos/${avisoId}/imagenes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userToken}`
+                },
+                body: JSON.stringify({ imagenes })
+            });
+            if (!resp.ok) {
+                let errMsg = 'Error al subir imágenes';
+                try { const e = await resp.json(); if (e && (e.error || e.message)) errMsg = e.error || e.message; } catch {}
+                throw new Error(errMsg);
+            }
+            return await resp.json();
+        }
+
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            checkEditMode();
+        });
+
+        function checkAuth() {
+            userToken = localStorage.getItem('token');
+            const userRole = localStorage.getItem('userRole');
+            const userName = localStorage.getItem('userName');
+
+            if (!userToken || (userRole !== 'administrador' && userRole !== 'editor')) {
+                alert('Acceso denegado. Solo administradores y editores pueden gestionar avisos.');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            currentUser = { role: userRole, name: userName };
+            document.getElementById('userRole').textContent = `rol: ${userRole}`;
+            loadAvisos();
+        }
+
+        function checkEditMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('edit');
+            
+            if (editId) {
+                editingAvisoId = parseInt(editId);
+                loadAvisoForEdit(editingAvisoId);
+            }
+        }
+
+        async function loadAvisoForEdit(avisoId) {
+            try {
+                const response = await fetch(`${API_BASE}/avisos/${avisoId}`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const aviso = await response.json();
+                    populateForm(aviso);
+                    document.getElementById('formTitle').textContent = 'Editar Aviso';
+                    document.getElementById('submitBtn').textContent = 'Actualizar Aviso';
+                } else {
+                    throw new Error('Aviso no encontrado');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error al cargar el aviso para editar', 'error');
+                editingAvisoId = null;
+            }
+        }
+
+        function populateForm(aviso) {
+            document.getElementById('titulo').value = aviso.titulo;
+            document.getElementById('descripcion').value = aviso.descripcion;
+            document.getElementById('fecha_inicio_semana').value = formatDateForInput(aviso.fecha_inicio_semana);
+            document.getElementById('fecha_fin_semana').value = formatDateForInput(aviso.fecha_fin_semana);
+        }
+
+        function formatDateForInput(dateString) {
+            return new Date(dateString).toISOString().split('T')[0];
+        }
+
+        async function loadAvisos() {
+            try {
+                const response = await fetch(`${API_BASE}/avisos`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const avisos = Array.isArray(data) ? data : (data.items || []);
+                    displayAvisos(avisos);
+                } else {
+                    throw new Error('Error al cargar avisos');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('avisosContainer').innerHTML = 
+                    '<div class="error-message">Error al cargar los avisos</div>';
+            }
+        }
+
+        function displayAvisos(avisos) {
+            const container = document.getElementById('avisosContainer');
+            
+            if (avisos.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666;">No hay avisos creados</div>';
+                return;
+            }
+
+            container.innerHTML = avisos.map(aviso => `
+                <div class="aviso-item">
+                    <div class="aviso-header">
+                        <div class="aviso-title">${aviso.titulo}</div>
+                        <div class="aviso-actions">
+                            <button class="btn" onclick="editAviso(${aviso.aviso_id || aviso.id})">Editar</button>
+                            ${currentUser.role === 'administrador' ? '<button class="btn-danger" onclick="deleteAviso(' + (aviso.aviso_id || aviso.id) + ')">Eliminar</button>' : ''}
+                        </div>
+                    </div>
+                    <div class="aviso-description">${aviso.descripcion}</div>
+                    <div class="aviso-dates">
+                        📅 ${formatDate(aviso.fecha_inicio_semana)} - ${formatDate(aviso.fecha_fin_semana)}
+                    </div>
+                    <div class="aviso-creator">
+                        Creado por: ${aviso.creador?.nombre || 'Usuario'} | 
+                        ${formatDateTime(aviso.createdAt || aviso.fecha_creacion)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function editAviso(avisoId) {
+            window.location.href = `avisos-management.html?edit=${avisoId}`;
+        }
+
+        async function deleteAviso(avisoId) {
+            if (!(currentUser && currentUser.role === 'administrador')) {
+                showMessage('Solo administradores pueden eliminar avisos', 'error');
+                return;
+            }
+            if (!confirm('¿Estás seguro de eliminar este aviso? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/avisos/${avisoId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    showMessage('Aviso eliminado exitosamente', 'success');
+                    await loadAvisos(); // Recargar la lista
+                } else {
+                    throw new Error('Error al eliminar aviso');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error al eliminar el aviso', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const className = type === 'error' ? 'error-message' : 'success-message';
+            container.innerHTML = `<div class="${className}">${message}</div>`;
+            
+            // Limpiar mensaje después de 5 segundos
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('es-ES');
+        }
+
+        function formatDateTime(dateString) {
+            return new Date(dateString).toLocaleString('es-ES');
+        }
+
+        function resetForm() {
+            document.getElementById('avisoForm').reset();
+            editingAvisoId = null;
+            document.getElementById('formTitle').textContent = 'Crear Nuevo Aviso';
+            document.getElementById('submitBtn').textContent = 'Crear Aviso';
+            
+            // Limpiar parámetros de URL
+            const url = new URL(window.location);
+            url.searchParams.delete('edit');
+            window.history.replaceState({}, document.title, url);
+        }
+
+        // Event Listeners
+        document.getElementById('avisoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const avisoData = {
+                titulo: formData.get('titulo').trim(),
+                descripcion: formData.get('descripcion').trim(),
+                fecha_inicio_semana: formData.get('fecha_inicio_semana'),
+                fecha_fin_semana: formData.get('fecha_fin_semana')
+            };
+
+            // Validaciones
+            if (!avisoData.titulo || !avisoData.descripcion) {
+                showMessage('Por favor completa todos los campos requeridos', 'error');
+                return;
+            }
+
+            if (new Date(avisoData.fecha_inicio_semana) >= new Date(avisoData.fecha_fin_semana)) {
+                showMessage('La fecha de inicio debe ser anterior a la fecha de fin', 'error');
+                return;
+            }
+
+            const imageFiles = getSelectedImages();
+
+            try {
+                const url = editingAvisoId ? 
+                    `${API_BASE}/avisos/${editingAvisoId}` : 
+                    `${API_BASE}/avisos`;
+                
+                const method = editingAvisoId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify(avisoData)
+                });
+
+                if (response.ok) {
+                    const aviso = await response.json();
+                    const avisoId = editingAvisoId || aviso.aviso_id || aviso.id;
+
+                    if (imageFiles && imageFiles.length > 0 && avisoId) {
+                        try {
+                            const r = await uploadAvisoImages(avisoId, imageFiles);
+                            const count = (r && r.imagenes && Array.isArray(r.imagenes)) ? r.imagenes.length : imageFiles.length;
+                            showMessage(`Aviso ${editingAvisoId ? 'actualizado' : 'creado'} y ${count} imagen(es) subida(s)`, 'success');
+                        } catch (imgErr) {
+                            console.error('Imagenes error:', imgErr);
+                            showMessage(`Aviso ${editingAvisoId ? 'actualizado' : 'creado'} pero falló la subida de imágenes: ${imgErr.message}`, 'error');
+                        }
+                    } else {
+                        showMessage(`Aviso ${editingAvisoId ? 'actualizado' : 'creado'} exitosamente`, 'success');
+                    }
+
+                    // Reset y recarga
+                    resetForm();
+                    const imgInput = document.getElementById('imagenes');
+                    if (imgInput) imgInput.value = '';
+                    await loadAvisos();
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al procesar el aviso');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(error.message || 'Error al procesar el aviso', 'error');
+            }
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', function() {
+            if (editingAvisoId) {
+                window.location.href = 'avisos-management.html';
+            } else {
+                resetForm();
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            window.location.href = 'login.html';
+        });
+
+        // Validación de fechas en tiempo real
+        document.getElementById('fecha_inicio_semana').addEventListener('change', function() {
+            const fechaInicio = this.value;
+            const fechaFin = document.getElementById('fecha_fin_semana');
+            
+            if (fechaInicio) {
+                fechaFin.min = fechaInicio;
+                if (fechaFin.value && fechaFin.value <= fechaInicio) {
+                    fechaFin.value = '';
+                }
+            }
+        });
+
+        document.getElementById('fecha_fin_semana').addEventListener('change', function() {
+            const fechaFin = this.value;
+            const fechaInicio = document.getElementById('fecha_inicio_semana').value;
+            
+            if (fechaInicio && fechaFin && fechaFin <= fechaInicio) {
+                showMessage('La fecha de fin debe ser posterior a la fecha de inicio', 'error');
+                this.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Sistema de Avisos</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .nav-menu {
+            background-color: #333;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-menu a {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-menu a:hover {
+            background-color: #555;
+        }
+        
+        .form-container {
+            background-color: #e0e0e0;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .form-container.show {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .password-input-container input {
+            padding-right: 45px;
+        }
+        
+        .password-toggle-btn {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            color: #666;
+            user-select: none;
+        }
+        
+        .password-toggle-btn:hover {
+            color: #333;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .user-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            margin: 15px 0;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .user-info-section {
+            flex-grow: 1;
+        }
+        
+        .user-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 5px;
+        }
+        
+        .user-email {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .user-role {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            background-color: #ffe6e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success-message {
+            color: #28a745;
+            background-color: #e6ffe6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .form-title {
+            color: #000;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .section-title {
+            color: #000;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .role-admin {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .role-usuario {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .user-list-item {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .user-actions {
+                margin-left: 0;
+                justify-content: center;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div>
+            <h1>Gestión de Usuarios</h1>
+            <div class="user-info" id="userRole">Cargando...</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">↗</button>
+    </header>
+
+    <nav class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="users-list.html">Usuarios</a>
+        <a href="avisos-management.html">Gestión Avisos</a>
+    </nav>
+
+    <div class="container">
+        <!-- Botón para crear nuevo usuario -->
+        <button class="btn-success" id="createUserBtn">+ Crear Nuevo Usuario</button>
+        
+        <!-- Formulario para crear/editar usuarios -->
+        <div class="form-container" id="userFormContainer">
+            <h2 class="form-title" id="formTitle">Crear Nuevo Usuario</h2>
+            
+            <div id="messageContainer"></div>
+            
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre Completo *</label>
+                    <input type="text" id="nombre" name="nombre" required maxlength="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Correo Electrónico *</label>
+                    <input type="email" id="email" name="email" required maxlength="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="contraseña">Contraseña *</label>
+                    <div class="password-input-container">
+                        <input type="password" id="contraseña" name="contraseña" required minlength="6" maxlength="100">
+                        <button type="button" class="password-toggle-btn" id="passwordToggle" onclick="togglePasswordVisibility()">👁️</button>
+                    </div>
+                    <small style="color: #666; font-size: 12px;">Mínimo 6 caracteres</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rol">Rol *</label>
+                    <select id="rol" name="rol" required>
+                        <option value="">Seleccionar rol</option>
+                        <option value="administrador">Administrador</option>
+                        <option value="editor">Editor</option>
+                        <option value="visualizador">Visualizador</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="submitBtn">Crear Usuario</button>
+                    <button type="button" class="btn-secondary" id="cancelBtn">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de usuarios -->
+        <div class="card">
+            <h2 class="section-title">Usuarios Registrados</h2>
+            <div id="usersContainer">
+                <div class="loading">Cargando usuarios...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/comments.js"></script>
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+        let userToken = null;
+        let currentUser = null;
+        let editingUserId = null;
+
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+
+        function checkAuth() {
+            userToken = localStorage.getItem('token');
+            const userRole = localStorage.getItem('userRole');
+            const userName = localStorage.getItem('userName');
+
+            if (!userToken || userRole !== 'administrador') {
+                alert('Acceso denegado. Solo administradores pueden gestionar usuarios.');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            currentUser = { role: userRole, name: userName };
+            document.getElementById('userRole').textContent = `rol: ${userRole}`;
+            loadUsers();
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    displayUsers(users);
+                } else {
+                    throw new Error('Error al cargar usuarios');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('usersContainer').innerHTML = 
+                    '<div class="error-message">Error al cargar los usuarios</div>';
+            }
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('usersContainer');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666;">No hay usuarios registrados</div>';
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <div class="user-list-item">
+                    <div class="user-info-section">
+                        <div class="user-name">${user.nombre}</div>
+                        <div class="user-email">📧 ${user.email}</div>
+                        <div class="user-role">
+                            <span class="role-badge role-${user.rol}">${user.rol}</span>
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn" onclick="editUser(${user.usuario_id})">Editar</button>
+                        <button class="btn" onclick="viewUser(${user.usuario_id})">Ver Detalles</button>
+                        <button class="btn-danger" onclick="deleteUser(${user.usuario_id})">Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showUserForm() {
+            document.getElementById('userFormContainer').classList.add('show');
+            document.getElementById('createUserBtn').style.display = 'none';
+        }
+
+        function hideUserForm() {
+            document.getElementById('userFormContainer').classList.remove('show');
+            document.getElementById('createUserBtn').style.display = 'block';
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('userForm').reset();
+            editingUserId = null;
+            document.getElementById('formTitle').textContent = 'Crear Nuevo Usuario';
+            document.getElementById('submitBtn').textContent = 'Crear Usuario';
+            document.getElementById('contraseña').required = true;
+            document.getElementById('messageContainer').innerHTML = '';
+        }
+
+        async function editUser(userId) {
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    populateForm(user);
+                    editingUserId = userId;
+                    document.getElementById('formTitle').textContent = 'Editar Usuario';
+                    document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
+                    document.getElementById('contraseña').required = false;
+                    showUserForm();
+                } else {
+                    throw new Error('Usuario no encontrado');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error al cargar el usuario para editar', 'error');
+            }
+        }
+
+        function populateForm(user) {
+            document.getElementById('nombre').value = user.nombre;
+            document.getElementById('email').value = user.email;
+            document.getElementById('rol').value = user.rol;
+            document.getElementById('contraseña').value = ''; // No mostrar contraseña
+        }
+
+        function viewUser(userId) {
+            window.location.href = `user-detail.html?id=${userId}`;
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    showMessage('Usuario eliminado exitosamente', 'success');
+                    await loadUsers(); // Recargar la lista
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al eliminar usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(error.message || 'Error al eliminar el usuario', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const className = type === 'error' ? 'error-message' : 'success-message';
+            container.innerHTML = `<div class="${className}">${message}</div>`;
+            
+            // Limpiar mensaje después de 5 segundos
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Event Listeners
+        document.getElementById('createUserBtn').addEventListener('click', showUserForm);
+        document.getElementById('cancelBtn').addEventListener('click', hideUserForm);
+
+        document.getElementById('userForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const userData = {
+                nombre: formData.get('nombre').trim(),
+                email: formData.get('email').trim(),
+                rol: formData.get('rol')
+            };
+
+            // Solo incluir contraseña si se está creando o si se proporcionó una nueva
+            const password = formData.get('contraseña').trim();
+            if (!editingUserId || password) {
+                userData.password = password;
+            }
+
+            // Validaciones
+            if (!userData.nombre || !userData.email || !userData.rol) {
+                showMessage('Por favor completa todos los campos requeridos', 'error');
+                return;
+            }
+
+            if (!editingUserId && !password) {
+                showMessage('La contraseña es requerida para nuevos usuarios', 'error');
+                return;
+            }
+
+            if (password && password.length < 6) {
+                showMessage('La contraseña debe tener al menos 6 caracteres', 'error');
+                return;
+            }
+
+            try {
+                const url = editingUserId ? 
+                    `${API_BASE}/users/${editingUserId}` : 
+                    `${API_BASE}/users`;
+                
+                const method = editingUserId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    const action = editingUserId ? 'actualizado' : 'creado';
+                    showMessage(`Usuario ${action} exitosamente`, 'success');
+                    hideUserForm();
+                    await loadUsers(); // Recargar la lista
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al procesar el usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(error.message || 'Error al procesar el usuario', 'error');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            window.location.href = 'login.html';
+        });
+
+        // Validación de email en tiempo real
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value.trim();
+            if (email && !editingUserId) {
+                // Verificar si el email ya existe (solo para nuevos usuarios)
+                checkEmailExists(email);
+            }
+        });
+
+        async function checkEmailExists(email) {
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    const emailExists = users.some(user => user.email.toLowerCase() === email.toLowerCase());
+                    
+                    if (emailExists) {
+                        showMessage('Este correo electrónico ya está registrado', 'error');
+                        document.getElementById('email').focus();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking email:', error);
+            }
+        }
+
+        // Función para mostrar/ocultar contraseña
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('contraseña');
+            const toggleButton = document.getElementById('passwordToggle');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.textContent = '🙈';
+                toggleButton.title = 'Ocultar contraseña';
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.textContent = '👁️';
+                toggleButton.title = 'Mostrar contraseña';
+            }
+        }
+    </script>
+</body>
+</html>

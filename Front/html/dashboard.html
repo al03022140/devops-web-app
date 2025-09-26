@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Avisos</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .nav-menu {
+            background-color: #333;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-menu a {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-menu a:hover {
+            background-color: #555;
+        }
+        
+        .aviso-item {
+            background-color: #e0e0e0;
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #333;
+        }
+        
+        .aviso-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        
+        .aviso-description {
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .aviso-dates {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .aviso-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .comments-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+        }
+        
+        .comment-item {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .comment-author {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .comment-text {
+            color: #555;
+            margin-top: 5px;
+        }
+        
+        .comment-form {
+            margin-top: 10px;
+        }
+        
+        .comment-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            background-color: #ffe6e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .admin-metrics {
+            display: none;
+        }
+        
+        .admin-metrics.show {
+            display: block;
+        }
+        
+        .create-aviso-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .create-aviso-btn:hover {
+            background-color: #218838;
+        }
+        .ws-indicator{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;background:#c0c0c0;vertical-align:middle}
+        .ws-indicator.online{background:#28a745}
+        .ws-indicator.offline{background:#dc3545}
+        .pagination{margin-top:10px;display:flex;align-items:center;gap:8px}
+        
+        /* Layout de dos columnas para admin */
+        .dashboard-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .left-panel {
+            flex: 0 0 300px;
+            display: none;
+        }
+        
+        .left-panel.show {
+            display: block;
+        }
+        
+        .main-content {
+            flex: 1;
+        }
+        
+        /* Formulario de subida de avisos */
+        .upload-notice-form {
+            background-color: #b8b8b8;
+            color: #000000;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .upload-notice-form h3 {
+            color: #000;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333;
+            background-color: #fff;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .upload-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        }
+        
+        .upload-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .upload-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div>
+            <h1 id="welcomeMessage">Bienvenido!</h1>
+            <div class="user-info" id="userRole">Cargando... <span id="wsIndicator" class="ws-indicator" title="WebSocket: desconectado"></span></div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">↗</button>
+    </header>
+
+    <nav class="nav-menu" id="navMenu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="#" id="usersLink" style="display: none;">Usuarios</a>
+        <a href="#" id="avisosLink" style="display: none;">Gestión Avisos</a>
+    </nav>
+
+    <div class="container">
+                <!-- Métricas para Administradores -->
+                <div class="admin-metrics" id="adminMetrics">
+            <div class="card">
+                <button class="create-aviso-btn" id="createAvisoBtn">+ Crear Nuevo Aviso</button>
+                
+                <div class="metric-item">
+                    <div class="metric-icon">
+                        <img src="/images/png/Usuarios.png" alt="Usuarios" width="24" height="24">
+                    </div>
+                    <div id="userCount">Usuarios Activos: --</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-icon">
+                        <img src="/images/png/Avisos.png" alt="Avisos" width="24" height="24">
+                    </div>
+                    <div id="avisoCount">Avisos Publicados: --</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-icon">
+                        <img src="/images/png/Mensajes.png" alt="Comentarios" width="24" height="24">
+                    </div>
+                    <div id="commentCount">Comentarios Totales: --</div>
+                </div>
+
+                <div class="metric-item">
+                    <div>Disponibilidad del sistema: <span class="availability">99.97% (últimas 24h)</span></div>
+                </div>
+                <!-- UI métricas Semanales -->
+                <div class="metric-item" id="weeklyMetricsSection">
+                    <h3 style="color: #000; margin: 10px 0;">métricas semanales</h3>
+                    <div id="weeklyMetricsControls" style="margin-bottom: 10px;">
+                        <input type="date" id="metricsDesde">
+                        <input type="date" id="metricsHasta">
+                        <button class="btn" id="metricsFiltrarBtn">Filtrar</button>
+                        <span id="recalculoWrapper" style="margin-left: 10px; display: none;">
+                            <input type="date" id="recalcularSemana">
+                            <button class="btn" id="recalcularSemanaBtn">Recalcular</button>
+                        </span>
+                    </div>
+                    <div id="weeklyMetricsContainer" class="loading">--</div>
+                    <div id="weeklyMetricsPagination" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+            <!-- Botón de prueba temporal -->
+            <button onclick="toggleLeftPanel()" style="margin: 10px; padding: 10px; background: red; color: white;">PRUEBA: Mostrar/Ocultar Panel</button>
+        </div>
+
+                <!-- Sección de Avisos -->
+                <div class="card">
+                    <h2 style="color: #000; margin-bottom: 20px;">Avisos de la Semana</h2>
+                    <div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;">
+                        <label for="avisosPageSize" style="color:#333;">Tamaño Página:</label>
+                        <select id="avisosPageSize" class="btn" style="background:#fff;border:1px solid #ccc;color:#333;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div id="avisosContainer">
+                        <div class="loading">--</div>
+                    </div>
+                    <div id="avisosPagination" class="pagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/comments.js"></script>
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+    let currentUser = null;
+        let userToken = null;
+        let isValidating = false; // Bandera para evitar múltiples validaciones
+    const avisosState = { page: 1, limit: 10, total: 0 };
+
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+
+        function checkAuth() {
+            if (isValidating) {
+                return;
+            }
+            
+            userToken = localStorage.getItem('token');
+            const userRole = localStorage.getItem('userRole');
+            const userName = localStorage.getItem('userName');
+
+            if (!userToken) {
+                // Evitar redirección inmediata si acabamos de llegar del login
+                if (document.referrer.includes('login.html')) {
+                    console.log('Acabamos de llegar del login, esperando...');
+                    setTimeout(() => {
+                        if (!localStorage.getItem('token')) {
+                            window.location.href = '/html/login.html';
+                        }
+                    }, 1000);
+                    return;
+                }
+                window.location.href = '/html/login.html';
+                return;
+            }
+
+            // Validar token con el backend
+            validateTokenWithBackend();
+        }
+
+    async function validateTokenWithBackend() {
+            if (isValidating) {
+                return;
+            }
+            
+            isValidating = true;
+            
+            // Verificar que tenemos todos los datos necesarios
+            if (!userToken) {
+                isValidating = false;
+                window.location.href = '/html/login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/validate`, {
+                    headers: { 
+                        'Authorization': `Bearer ${userToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    
+                    // Actualizar datos del usuario si vienen del backend
+                    if (userData.user) {
+                        localStorage.setItem('userRole', userData.user.rol);
+                        localStorage.setItem('userName', userData.user.nombre);
+                        localStorage.setItem('userId', userData.user.usuario_id);
+                    }
+                    
+                    const userRole = localStorage.getItem('userRole');
+                    const userName = localStorage.getItem('userName');
+                    const userId = Number(localStorage.getItem('userId')) || null;
+                    
+                    currentUser = { role: userRole, name: userName, id: userId };
+                    updateUI(); // Usar función completa
+                    loadDashboardData(); // Cargar datos del dashboard
+                    
+                    isValidating = false;
+                } else {
+                    localStorage.clear();
+                    isValidating = false;
+                    window.location.href = '/html/login.html';
+                }
+            } catch (error) {
+                console.error('Error validando token:', error);
+                // En caso de error de conexión, intentar usar datos locales si existen
+                const userRole = localStorage.getItem('userRole');
+                const userName = localStorage.getItem('userName');
+                const userId = Number(localStorage.getItem('userId')) || null;
+                
+                if (userRole && userName) {
+                    // Usar datos locales temporalmente
+                    currentUser = { role: userRole, name: userName, id: userId };
+                    updateUIBasic();
+                    console.warn('Usando datos locales debido a error de conexión');
+                } else {
+                    // Solo redirigir si no hay datos locales válidos
+                    localStorage.clear();
+                    window.location.href = '/html/login.html';
+                }
+                isValidating = false;
+            }
+        }
+
+        function updateUIBasic() {
+            console.log('updateUIBasic - currentUser:', currentUser);
+            console.log('updateUIBasic - currentUser.role:', currentUser.role);
+            console.log('updateUIBasic - role type:', typeof currentUser.role);
+            
+            document.getElementById('welcomeMessage').textContent = `Bienvenido, ${currentUser.name}`;
+            
+            // Actualizar para mostrar el nombre del usuario, manteniendo el indicador de WebSocket
+            const userRoleElement = document.getElementById('userRole');
+            const wsIndicator = document.getElementById('wsIndicator');
+            userRoleElement.innerHTML = `${currentUser.name} `;
+            if (wsIndicator) {
+                userRoleElement.appendChild(wsIndicator);
+            }
+            
+            if (currentUser.role === 'administrador' || currentUser.role === 'editor') {
+                console.log('Mostrando elementos para admin/editor');
+                document.getElementById('adminMetrics').classList.add('show');
+                document.getElementById('avisosLink').style.display = 'inline';
+                // Mostrar controles de recálculo para admin/editor
+                const recalculoWrapper = document.getElementById('recalculoWrapper');
+                if (recalculoWrapper) {
+                    recalculoWrapper.style.display = 'inline-block';
+                }
+            }
+            if (currentUser.role === 'administrador') {
+                console.log('Usuario es administrador - mostrando panel izquierdo');
+                document.getElementById('usersLink').style.display = 'inline';
+                // Mostrar panel izquierdo para subir avisos
+                const leftPanel = document.getElementById('leftPanel');
+                console.log('leftPanel element:', leftPanel);
+                if (leftPanel) {
+                    leftPanel.classList.add('show');
+                    console.log('Clase show agregada al leftPanel');
+                }
+                // Inicializar formulario de subida de avisos
+                initUploadNoticeForm();
+            }
+        }
+
+        function updateUI() {
+            updateUIBasic();
+            
+            if (currentUser && currentUser.role === 'administrador') {
+                loadAdminMetrics();
+                loadWeeklyMetrics();
+            }
+        }
+
+        async function loadDashboardData() {
+            await loadAvisos();
+        }
+
+        async function loadAdminMetrics() {
+            try {
+                // Cargar métricas básicas
+                const [usersRes, avisosRes] = await Promise.all([
+                    fetch(`${API_BASE}/users`, {
+                        headers: { 'Authorization': `Bearer ${userToken}` }
+                    }),
+                    fetch(`${API_BASE}/avisos`, {
+                        headers: { 'Authorization': `Bearer ${userToken}` }
+                    })
+                ]);
+
+                if (usersRes.ok && avisosRes.ok) {
+                    const users = await usersRes.json();
+                    const avisosData = await avisosRes.json();
+                    const avisos = Array.isArray(avisosData) ? avisosData : (avisosData.items || []);
+                    const avisosTotal = Array.isArray(avisosData) ? avisos.length : (avisosData.total || avisos.length);
+                    
+                    document.getElementById('userCount').textContent = `Usuarios Activos: ${users.length || 0}`;
+                    document.getElementById('avisoCount').textContent = `Avisos Publicados: ${avisosTotal || 0}`;
+                    
+                    // Contar comentarios totales
+                    let totalComments = 0;
+                    avisos.forEach(aviso => {
+                        if (aviso.comentarios) {
+                            totalComments += aviso.comentarios.length;
+                        }
+                    });
+                    document.getElementById('commentCount').textContent = `Comentarios Totales: ${totalComments}`;
+                } else {
+                    console.warn('Error en respuesta de métricas:', usersRes.status, avisosRes.status);
+                    // No redirigir, solo mostrar error en métricas
+                    document.getElementById('userCount').textContent = 'No se encontraron datos';
+                    document.getElementById('avisoCount').textContent = 'No se encontraron datos';
+                    document.getElementById('commentCount').textContent = 'No se encontraron datos';
+                }
+            } catch (error) {
+                console.error('Error loading admin metrics:', error);
+                // No redirigir, solo mostrar error en métricas
+                document.getElementById('userCount').textContent = 'No se encontraron datos';
+                document.getElementById('avisoCount').textContent = 'No se encontraron datos';
+                document.getElementById('commentCount').textContent = 'No se encontraron datos';
+            }
+        }
+
+        async function loadAvisos() {
+            try {
+                const params = new URLSearchParams();
+                params.set('page', String(avisosState.page));
+                params.set('limit', String(avisosState.limit));
+                const response = await fetch(`${API_BASE}/avisos?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const avisos = Array.isArray(data) ? data : (data.items || []);
+                    avisosState.total = Array.isArray(data) ? avisos.length : (data.total || avisos.length);
+                    displayAvisos(avisos);
+                    renderAvisosPagination();
+                } else {
+                    throw new Error('Error al cargar avisos');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('avisosContainer').innerHTML = 
+                    '<div class="error-message">No se encontraron datos</div>';
+                document.getElementById('avisosPagination').innerHTML = '';
+            }
+        }
+
+        function displayAvisos(avisos) {
+            const container = document.getElementById('avisosContainer');
+            
+            if (avisos.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666;">No hay avisos publicados</div>';
+                return;
+            }
+
+            container.innerHTML = avisos.map(aviso => `
+                <div class="aviso-item">
+                    <div class="aviso-title">${aviso.titulo}</div>
+                    <div class="aviso-description">${aviso.descripcion}</div>
+                    <div class="aviso-dates">
+                         ${formatDate(aviso.fecha_inicio_semana)} - ${formatDate(aviso.fecha_fin_semana)}
+                        | Creado por: ${aviso.creador && aviso.creador.nombre ? aviso.creador.nombre : 'Usuario'}
+                    </div>
+                    
+                    ${(currentUser.role === 'administrador' || currentUser.role === 'editor') ? `
+                        <div class="aviso-actions">
+                            <button class="btn" onclick="editAviso(${aviso.aviso_id || aviso.id})">Editar</button>
+                            ${currentUser.role === 'administrador' ? '<button class="btn" onclick="deleteAviso(' + (aviso.aviso_id || aviso.id) + ')" style="background-color: #dc3545;">Eliminar</button>' : ''}
+                            <a class="btn" href="/html/aviso-detail.html?id=${aviso.aviso_id || aviso.id}">Ver detalle</a>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="comments-section">
+                        <h4 style="color: #000; margin-bottom: 10px;">Comentarios (${aviso.comentarios && aviso.comentarios.length ? aviso.comentarios.length : 0})</h4>
+                        <div id="comments-${aviso.aviso_id || aviso.id}">
+                            ${displayComments(aviso.comentarios || [])}
+                        </div>
+                        
+                        <div class="comment-form">
+                            <textarea class="comment-input" id="comment-${aviso.aviso_id || aviso.id}" placeholder="Escribe tu comentario..."></textarea>
+                            <button class="btn" onclick="addComment(${aviso.aviso_id || aviso.id})" style="margin-top: 8px;">Comentar</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAvisosPagination(){
+            const p = document.getElementById('avisosPagination');
+            const totalPages = Math.max(1, Math.ceil(avisosState.total / avisosState.limit));
+            if (totalPages <= 1){ p.innerHTML = ''; return; }
+            p.innerHTML = `
+                <button class="btn" id="avisosPrev" ${avisosState.page<=1?'disabled':''}>Anterior</button>
+                <span>Página ${avisosState.page} de ${totalPages}</span>
+                <button class="btn" id="avisosNext" ${avisosState.page>=totalPages?'disabled':''}>Siguiente</button>
+            `;
+            const avisosPrevBtn = document.getElementById('avisosPrev');
+            if (avisosPrevBtn) {
+                avisosPrevBtn.addEventListener('click', () => { if (avisosState.page>1){ avisosState.page--; loadAvisos(); }});
+            }
+            const avisosNextBtn = document.getElementById('avisosNext');
+            if (avisosNextBtn) {
+                avisosNextBtn.addEventListener('click', () => { const max = Math.max(1, Math.ceil(avisosState.total/avisosState.limit)); if (avisosState.page<max){ avisosState.page++; loadAvisos(); }});
+            }
+        }
+
+        function displayComments(comments) {
+            if (comments.length === 0) {
+                return '<div style="color: #666; font-style: italic;">No hay comentarios aún</div>';
+            }
+
+            return comments.map(comment => `
+                <div class="comment-item">
+                    <div class="comment-author">${comment.autor && comment.autor.nombre ? comment.autor.nombre : 'Usuario'}${comment.autor?.email ? ': ' + comment.autor.email : ''}</div>
+                    <div class="comment-text">${comment.comentario}</div>
+                    <div style="font-size: 12px; color: #888; margin-top: 5px;">
+                        ${formatDateTime(comment.createdAt || comment.fecha_comentario)}
+                        ${(currentUser.role === 'administrador' || (currentUser.id && comment.usuario_id === currentUser.id)) ? 
+                            `<button class="btn" onclick="deleteComment(${comment.comentario_id || comment.id})" style="font-size: 10px; padding: 2px 6px; background-color: #dc3545; margin-left: 10px;">Eliminar</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addComment(avisoId) {
+            const commentText = document.getElementById(`comment-${avisoId}`).value.trim();
+            
+            if (!commentText) {
+                alert('Por favor escribe un comentario');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/comentarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        aviso_id: avisoId,
+                        comentario: commentText
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById(`comment-${avisoId}`).value = '';
+                    await loadAvisos(); // Recargar para mostrar el nuevo comentario
+                } else {
+                    throw new Error('Error al agregar comentario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al agregar el comentario');
+            }
+        }
+
+        async function deleteComment(commentId) {
+            if (!confirm('¿Estás seguro de eliminar este comentario?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/comentarios/${commentId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    await loadAvisos(); // Recargar para actualizar la vista
+                    if (currentUser.role === 'administrador') {
+                        await loadAdminMetrics(); // Actualizar métricas
+                    }
+                } else {
+                    throw new Error('Error al eliminar comentario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar el comentario');
+            }
+        }
+
+        async function editAviso(avisoId) {
+            // Redirigir a Página de gestión de avisos con ID para editar
+            window.location.href = `/html/avisos-management.html?edit=${avisoId}`;
+        }
+
+        async function deleteAviso(avisoId) {
+            if (!confirm('¿Estás seguro de eliminar este aviso?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/avisos/${avisoId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    await loadAvisos(); // Recargar para actualizar la vista
+                    if (currentUser.role === 'administrador') {
+                        await loadAdminMetrics(); // Actualizar métricas
+                    }
+                } else {
+                    throw new Error('Error al eliminar aviso');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar el aviso');
+            }
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('es-ES');
+        }
+
+        function formatDateTime(dateString) {
+            return new Date(dateString).toLocaleString('es-ES');
+        }
+
+        // Event Listeners
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            window.location.href = '/html/login.html';
+        });
+
+        const createAvisoBtn = document.getElementById('createAvisoBtn');
+        if (createAvisoBtn) {
+            createAvisoBtn.addEventListener('click', function() {
+                window.location.href = '/html/avisos-management.html';
+            });
+        }
+
+        const usersLink = document.getElementById('usersLink');
+        if (usersLink) {
+            usersLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = '/html/users-list.html';
+            });
+        }
+
+        const avisosLink = document.getElementById('avisosLink');
+        if (avisosLink) {
+            avisosLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = '/html/avisos-management.html';
+            });
+        }
+
+        // page size selector wiring
+        const avisosPageSize = document.getElementById('avisosPageSize');
+        if (avisosPageSize) {
+            avisosPageSize.addEventListener('change', (e) => {
+                const val = Number(e.target.value) || 10;
+                avisosState.limit = val;
+                avisosState.page = 1;
+                loadAvisos();
+            });
+        }
+
+        // -------- métricas semanales (UI + lógica) --------
+        const weeklyMetricsState = { page: 1, limit: 10, desde: null, hasta: null };
+
+        async function loadWeeklyMetrics() {
+            try {
+                const params = new URLSearchParams();
+                params.set('pagina', String(weeklyMetricsState.page));
+                params.set('tamanio', String(weeklyMetricsState.limit));
+                if (weeklyMetricsState.desde) params.set('desde', weeklyMetricsState.desde);
+                if (weeklyMetricsState.hasta) params.set('hasta', weeklyMetricsState.hasta);
+
+                const res = await fetch(`${API_BASE}/metricas/semanales?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                if (!res.ok) throw new Error('Error al cargar métricas semanales');
+                const data = await res.json(); // { items, total, page, limit }
+                renderWeeklyMetrics(data);
+            } catch (err) {
+                console.error(err);
+                const container = document.getElementById('weeklyMetricsContainer');
+                if (container) container.innerHTML = '<div class="error-message">No se encontraron datos</div>';
+            }
+        }
+
+        function renderWeeklyMetrics(data) {
+            const { items = [], total = 0, page = 1, limit = weeklyMetricsState.limit } = data || {};
+            const container = document.getElementById('weeklyMetricsContainer');
+            const pagination = document.getElementById('weeklyMetricsPagination');
+            if (!container || !pagination) return;
+
+            if (!items.length) {
+                container.innerHTML = '<div style="color:#666;">No se encontraron datos</div>';
+                pagination.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = items.map(m => `
+                <div class="metric-item">
+                    <div><strong>Semana:</strong> ${formatDate(m.semana_inicio)} - ${formatDate(m.semana_fin)}</div>
+                    <div style="margin-top:6px;">
+                        Avisos: <strong>${m.total_avisos}</strong> • Comentarios: <strong>${m.total_comentarios}</strong> • Usuarios activos: <strong>${m.usuarios_activos}</strong>
+                    </div>
+                </div>
+            `).join('');
+
+            const totalPages = Math.max(1, Math.ceil(total / limit));
+            pagination.innerHTML = `
+                <button class="btn" id="metricsPrevBtn" ${page <= 1 ? 'disabled' : ''}>Anterior</button>
+                <span style="margin:0 8px;">Página ${page} de ${totalPages}</span>
+                <button class="btn" id="metricsNextBtn" ${page >= totalPages ? 'disabled' : ''}>Siguiente</button>
+            `;
+
+            document.getElementById('metricsPrevBtn')?.addEventListener('click', () => {
+                if (weeklyMetricsState.page > 1) {
+                    weeklyMetricsState.page -= 1;
+                    loadWeeklyMetrics();
+                }
+            });
+            document.getElementById('metricsNextBtn')?.addEventListener('click', () => {
+                const maxPage = Math.max(1, Math.ceil(total / limit));
+                if (weeklyMetricsState.page < maxPage) {
+                    weeklyMetricsState.page += 1;
+                    loadWeeklyMetrics();
+                }
+            });
+        }
+
+        document.getElementById('metricsFiltrarBtn')?.addEventListener('click', () => {
+            const desde = document.getElementById('metricsDesde')?.value || null;
+            const hasta = document.getElementById('metricsHasta')?.value || null;
+            if (desde && hasta && new Date(desde) > new Date(hasta)) {
+                alert('El rango de fechas es inválido');
+                return;
+            }
+            weeklyMetricsState.desde = desde;
+            weeklyMetricsState.hasta = hasta;
+            weeklyMetricsState.page = 1;
+            loadWeeklyMetrics();
+        });
+
+        document.getElementById('recalcularSemanaBtn')?.addEventListener('click', async () => {
+            const semana = document.getElementById('recalcularSemana')?.value;
+            if (!semana) {
+                alert('Selecciona una fecha para recalcular su semana');
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/metricas/semanales/recalcular?semana=${encodeURIComponent(semana)}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                if (!res.ok) throw new Error('Error al recalcular semana');
+                await res.json();
+                loadWeeklyMetrics();
+            } catch (err) {
+                console.error(err);
+                alert('No se pudo recalcular la semana seleccionada');
+            }
+        });
+        // -------- Fin métricas semanales --------
+
+        // -------- Indicador WebSocket --------
+        function initWSIndicator(){
+            const indicator = document.getElementById('wsIndicator');
+            if (!indicator) return;
+            const update = (status) => {
+                indicator.classList.toggle('online', status === 'open');
+                indicator.classList.toggle('offline', status !== 'open');
+                indicator.title = `WebSocket: ${status === 'open' ? 'conectado' : status}`;
+            };
+            // Try to reuse comments.js socket if available
+            if (window.__commentsWS) {
+                const existing = window.__commentsWS.getSocket?.();
+                if (existing) {
+                    update(existing.readyState === WebSocket.OPEN ? 'open' : 'closed');
+                    window.__commentsWS.onStatus?.(update);
+                    return;
+                } else {
+                    window.__commentsWS.onStatus?.(update);
+                }
+            }
+            // Fallback: create a lightweight connection only for indicator
+            const loc = window.location;
+            const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
+            let ws;
+            function connect(){
+                ws = new WebSocket(`${proto}://${loc.host}/comments`);
+                ws.onopen = () => update('open');
+                ws.onclose = () => { update('closed'); setTimeout(connect, 3000); };
+                ws.onerror = () => update('error');
+            }
+            connect();
+        }
+
+        // -------- Función de prueba temporal --------
+        function toggleLeftPanel() {
+            const leftPanel = document.getElementById('leftPanel');
+            console.log('toggleLeftPanel - leftPanel:', leftPanel);
+            if (leftPanel) {
+                leftPanel.classList.toggle('show');
+                console.log('Panel toggled. Classes:', leftPanel.className);
+            }
+        }
+
+        // -------- Formulario de subida de avisos --------
+        function initUploadNoticeForm() {
+            console.log('initUploadNoticeForm - iniciando');
+            const form = document.getElementById('uploadNoticeForm');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const startDateInput = document.getElementById('noticeStartDate');
+            const endDateInput = document.getElementById('noticeEndDate');
+            
+            console.log('Form element:', form);
+            console.log('Upload button:', uploadBtn);
+            
+            // Solo proceder si los elementos existen
+            if (!form || !startDateInput || !endDateInput) {
+                console.log('Elementos del formulario de upload no encontrados, saltando inicialización');
+                return;
+            }
+            
+            // Establecer fecha mínima como hoy
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.min = today;
+            endDateInput.min = today;
+            
+            // Validar que la fecha de fin sea posterior a la de inicio
+            startDateInput.addEventListener('change', function() {
+                const startDate = this.value;
+                endDateInput.min = startDate;
+                
+                if (endDateInput.value && endDateInput.value < startDate) {
+                    endDateInput.value = startDate;
+                }
+            });
+            
+            form.addEventListener('submit', handleUploadNotice);
+        }
+        
+        async function handleUploadNotice(event) {
+            event.preventDefault();
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            const form = document.getElementById('uploadNoticeForm');
+            
+            // Verificar que los elementos existen
+            if (!uploadBtn || !form) {
+                console.log('Elementos del formulario no encontrados');
+                return;
+            }
+            
+            // Deshabilitar botón durante la subida
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Subiendo...';
+            
+            try {
+                const formData = new FormData(form);
+                const noticeData = {
+                    titulo: formData.get('title'),
+                    descripcion: formData.get('description'),
+                    prioridad: formData.get('priority'),
+                    fecha_inicio: formData.get('startDate'),
+                    fecha_fin: formData.get('endDate')
+                };
+                
+                const response = await fetch(`${API_BASE}/avisos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify(noticeData)
+                });
+                
+                if (response.ok) {
+                    // Limpiar formulario
+                    form.reset();
+                    
+                    // Mostrar mensaje de éxito
+                    alert('Aviso subido exitosamente');
+                    
+                    // Recargar avisos para mostrar el nuevo
+                    await loadAvisos();
+                    
+                    // Recargar métricas si es admin
+                    if (currentUser.role === 'administrador') {
+                        await loadAdminMetrics();
+                    }
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al subir el aviso');
+                }
+            } catch (error) {
+                console.error('Error uploading notice:', error);
+                alert('Error al subir el aviso: ' + error.message);
+            } finally {
+                // Rehabilitar botón
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Subir Aviso';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initWSIndicator);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

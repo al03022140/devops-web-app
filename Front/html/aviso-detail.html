@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalle de Aviso - Sistema de Avisos</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .nav-menu { background-color:#333; padding:10px 20px; display:flex; gap:20px; }
+    .nav-menu a { color:#fff; text-decoration:none; padding:8px 16px; border-radius:5px; transition:background-color .3s; }
+    .nav-menu a:hover { background:#555; }
+    .aviso-card { background:#e0e0e0; border-radius:10px; padding:20px; margin-bottom:20px; }
+    .aviso-title { color:#000; font-size:22px; font-weight:bold; margin-bottom:8px; }
+    .aviso-meta { color:#666; font-size:14px; margin-bottom:12px; }
+    .aviso-desc { color:#222; line-height:1.5; }
+    .comments-block { margin-top:25px; }
+    .comment-item { background:#f8f9fa; border-radius:8px; padding:12px; margin:10px 0; }
+    .comment-head { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#555; }
+    .comment-author { font-weight:bold; color:#333; }
+    .comment-text { color:#222; margin-top:8px; white-space:pre-wrap; }
+    .comment-actions { display:flex; gap:10px; }
+    .comment-form { display:flex; gap:10px; margin-top:15px; }
+    .comment-form textarea { flex:1; padding:10px; border:1px solid #ccc; border-radius:6px; min-height:80px; }
+    .btn { padding:8px 14px; border:none; border-radius:6px; cursor:pointer; }
+    .btn-primary { background:#007bff; color:#fff; }
+    .btn-danger { background:#dc3545; color:#fff; }
+    .btn-secondary { background:#6c757d; color:#fff; }
+    .error-message { color:#ff4444; background:#ffe6e6; padding:10px; border-radius:6px; margin:10px 0; }
+    .info { color:#333; background:#f1f1f1; padding:10px; border-radius:6px; margin:10px 0; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <h1>Detalle de Aviso</h1>
+      <div class="user-info" id="userRole">Cargando... <span id="wsIndicator" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;background:#c0c0c0;vertical-align:middle" title="WebSocket: desconectado"></span></div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">↗</button>
+  </header>
+
+  <nav class="nav-menu">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="users-list.html">Usuarios</a>
+    <a href="avisos-management.html">Gestión Avisos</a>
+  </nav>
+
+  <div class="container">
+    <div id="message"></div>
+
+    <div class="aviso-card" id="avisoCard" style="display:none"></div>
+
+    <div class="comments-block" id="commentsBlock" style="display:none">
+      <h2 style="color:#000">Comentarios</h2>
+      <div id="commentsList"><div class="info">Cargando comentarios...</div></div>
+      <div class="comment-form">
+        <textarea id="commentInput" placeholder="Escribe un comentario..."></textarea>
+        <button class="btn btn-primary" id="sendCommentBtn">Enviar</button>
+      </div>
+      <div class="info" style="margin-top:10px">Nota: edición de comentarios aún no disponible (faltan endpoints en backend).</div>
+    </div>
+  </div>
+
+  <script>
+  const API_BASE = `${window.location.origin}/api`;
+    let token = null;
+    let userRole = null;
+    let usuarioId = null;
+    let avisoId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      parseId();
+      if (!avisoId) {
+        showMessage('Falta el parámetro id de aviso en la URL', 'error');
+        return;
+      }
+      loadAviso();
+      loadComments();
+      document.getElementById('sendCommentBtn').addEventListener('click', sendComment);
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      initWSIndicator();
+    });
+
+    function checkAuth() {
+      token = localStorage.getItem('token');
+      userRole = localStorage.getItem('userRole');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('userRole').textContent = `rol: ${userRole || 'desconocido'}`;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        usuarioId = payload.usuario_id || null;
+      } catch {}
+    }
+
+    function parseId() {
+      const url = new URLSearchParams(window.location.search);
+      avisoId = url.get('id');
+    }
+
+    function showMessage(text, type='info') {
+      const el = document.getElementById('message');
+      el.innerHTML = `<div class="${type==='error'?'error-message':'info'}">${text}</div>`;
+    }
+
+    async function loadAviso() {
+      try {
+        const res = await fetch(`${API_BASE}/avisos/${avisoId}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (!res.ok) throw new Error('No se pudo cargar el aviso');
+        const aviso = await res.json();
+        renderAviso(aviso);
+      } catch (e) {
+        showMessage('Error al cargar el aviso', 'error');
+      }
+    }
+
+    function renderAviso(aviso) {
+      const card = document.getElementById('avisoCard');
+      card.style.display = 'block';
+      const fi = new Date(aviso.fecha_inicio_semana).toLocaleDateString('es-ES');
+      const ff = new Date(aviso.fecha_fin_semana).toLocaleDateString('es-ES');
+      card.innerHTML = `
+        <div class="aviso-title">${aviso.titulo}</div>
+        <div class="aviso-meta">Semana: ${fi} — ${ff} • Creador: ${aviso.creador?.nombre || 'N/A'}</div>
+        <div class="aviso-desc">${aviso.descripcion}</div>
+        <div style="margin-top:12px"><a class="btn btn-secondary" href="avisos-management.html">← Volver</a></div>
+      `;
+      document.getElementById('commentsBlock').style.display = 'block';
+    }
+
+    async function loadComments() {
+      const list = document.getElementById('commentsList');
+      list.innerHTML = '<div class="info">Cargando comentarios...</div>';
+      try {
+        const res = await fetch(`${API_BASE}/comentarios/aviso/${avisoId}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (!res.ok) throw new Error();
+        const items = await res.json();
+        renderComments(items);
+      } catch (e) {
+        list.innerHTML = '<div class="error-message">Error al cargar comentarios</div>';
+      }
+    }
+
+    function renderComments(items) {
+      const list = document.getElementById('commentsList');
+      if (!items || items.length === 0) {
+        list.innerHTML = '<div class="info">Aún no hay comentarios</div>';
+        return;
+      }
+      list.innerHTML = items.map(c => commentTemplate(c)).join('');
+    }
+
+    function commentTemplate(c) {
+      const fecha = new Date(c.createdAt || c.created_at).toLocaleString('es-ES');
+      const puedeBorrar = (userRole === 'administrador') || (usuarioId && c.usuario_id === usuarioId);
+      const autorDisplay = `${c.autor?.nombre || 'Usuario'}${c.autor?.email ? ': ' + c.autor.email : ''}`;
+      return `
+        <div class="comment-item">
+          <div class="comment-head">
+            <span><span class="comment-author">${autorDisplay}</span> • ${fecha}</span>
+            <div class="comment-actions">
+              ${puedeBorrar ? `<button class="btn btn-danger" onclick="deleteComment(${c.comentario_id || c.id})">Eliminar</button>` : ''}
+            </div>
+          </div>
+          <div class="comment-text">${c.comentario}</div>
+        </div>
+      `;
+    }
+
+    async function sendComment() {
+      const input = document.getElementById('commentInput');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      try {
+        const res = await fetch(`${API_BASE}/comentarios`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ aviso_id: Number(avisoId), comentario: text })
+        });
+        if (!res.ok) throw new Error();
+        input.value = '';
+        await loadComments();
+      } catch (e) {
+        showMessage('No se pudo enviar el comentario', 'error');
+      }
+    }
+
+    async function deleteComment(id) {
+      if (!confirm('¿Eliminar este comentario?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/comentarios/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+        if (res.status !== 204) throw new Error();
+        await loadComments();
+      } catch (e) {
+        showMessage('No se pudo eliminar el comentario', 'error');
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    }
+
+    function initWSIndicator(){
+      const indicator = document.getElementById('wsIndicator');
+      if (!indicator) return;
+      const update = (status) => {
+        indicator.style.background = (status === 'open') ? '#28a745' : '#dc3545';
+        indicator.title = `WebSocket: ${status === 'open' ? 'conectado' : status}`;
+      };
+      if (window.__commentsWS) {
+        const existing = window.__commentsWS.getSocket?.();
+        if (existing) {
+          update(existing.readyState === WebSocket.OPEN ? 'open' : 'closed');
+          window.__commentsWS.onStatus?.(update);
+          return;
+        } else {
+          window.__commentsWS.onStatus?.(update);
+        }
+      }
+      const loc = window.location;
+      const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
+      let ws;
+      function connect(){
+        ws = new WebSocket(`${proto}://${loc.host}/comments`);
+        ws.onopen = () => update('open');
+        ws.onclose = () => { update('closed'); setTimeout(connect, 3000); };
+        ws.onerror = () => update('error');
+      }
+      connect();
+    }
+  </script>
+</body>
+</html>
